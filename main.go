@@ -121,6 +121,11 @@ func main() {
 	fmt.Println(ret)
 
 	js.Global().Set("jsPI", jsPI())
+
+	js.Global().Call("alert", "this is an alerting!")
+	v := js.Global().Get("app")
+	fmt.Println(v.Get("title").String())
+	fmt.Println(v.Call("getAppTitle", "").String())
 	select {}
 }
 
