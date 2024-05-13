@@ -2,26 +2,36 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/edony-ink/log"
 )
 
+const (
+	LogFile  = "./bin/server.log"
+	SockFile = "./bin/server.sock"
+)
+
+func init() {
+	log.SWLogger.Init(LogFile, log.DebugLevel, true)
+}
+
 func main() {
-	err := os.Remove("/tmp/server.sock")
+	err := os.Remove(SockFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			fmt.Println("socket file not exist")
+			log.Info("socket file not exist")
 		} else {
-			panic(err)
+			log.Panic(err)
 		}
 	}
-	listener, err := net.Listen("unix", "/tmp/server.sock")
+	listener, err := net.Listen("unix", SockFile)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 	defer listener.Close()
 
@@ -29,9 +39,9 @@ func main() {
 	mutex.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := w.Write([]byte("Hello, world!"))
 		if err != nil {
-			panic(err)
+			log.Panic(err)
 		}
-		fmt.Println("hello world")
+		log.Info("hello world")
 	})
 
 	go func() {
@@ -39,17 +49,17 @@ func main() {
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 		// block here
-		fmt.Println("blocking...")
+		log.Info("blocking...")
 		<-sig
 		// cleanup socket resource
-		fmt.Println("cleanup socket file")
-		os.Remove("/tmp/server.sock")
+		log.Info("cleanup socket file")
+		os.Remove(SockFile)
 		// exit
 		os.Exit(0)
 	}()
 
 	err = http.Serve(listener, mutex)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 }
